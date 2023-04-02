@@ -1,0 +1,4 @@
+krakenex==2.1.0
+pykrakenapi==0.3.1
+numpy==1.19.5
+TA-Lib==0.4.0
