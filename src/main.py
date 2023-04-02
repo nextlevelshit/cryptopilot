@@ -1,9 +1,8 @@
-# Module that contains the trading strategy.
-
 import numpy as np
 import talib
 import time
 from cryptopilot import kraken, config
+
 
 def calculate_fibonacci_levels(high, low, levels):
     """
@@ -33,20 +32,6 @@ def execute_trades(ohlc_data, upper_band, middle_band, lower_band, fib_levels, k
     :param fib_levels: dictionary of Fibonacci levels and their corresponding prices
     :param kraken_api: KrakenAPI object for executing trades
     """
-
-    # Retrieve account balance
-    account_balance = kraken_api.get_account_balance()
-    print(f"Account balance: {account_balance}")
-
-    # Check for existing open orders
-    open_orders = kraken_api.get_open_orders(config.PAIR)
-    if open_orders:
-        print(f"Open orders: {open_orders}")
-        for order in open_orders:
-            kraken_api.cancel_order(order["txid"])
-        print("Cancelled open orders.")
-
-    # Execute trades
     last_price = ohlc_data[-1][4]
     for i in range(config.LOOKBACK_PERIOD, len(ohlc_data)):
         current_price = ohlc_data[i][4]
@@ -56,7 +41,7 @@ def execute_trades(ohlc_data, upper_band, middle_band, lower_band, fib_levels, k
                 upper_band[i] >= current_price >= middle_band[i] and \
                 lower_band[i] < last_price < middle_band[i]:
             print(f"Sell signal detected at {current_price:.4f}.")
-#             kraken_api.sell(config.PAIR, config.TRADE_SIZE)
+            # kraken_api.sell(config.PAIR, config.TRADE_SIZE)
             print(f"Sold {config.TRADE_SIZE} {config.CURRENCY} at {current_price:.4f}.")
 
         # Check for buy signal
@@ -64,28 +49,10 @@ def execute_trades(ohlc_data, upper_band, middle_band, lower_band, fib_levels, k
                 lower_band[i] <= current_price <= middle_band[i] and \
                 upper_band[i] > last_price > middle_band[i]:
             print(f"Buy signal detected at {current_price:.4f}.")
-#             kraken_api.buy(config.PAIR, config.TRADE_SIZE)
+            # kraken_api.buy(config.PAIR, config.TRADE_SIZE)
             print(f"Bought {config.TRADE_SIZE} {config.CURRENCY} at {current_price:.4f}.")
 
         last_price = current_price
-
-
-    # Close any open positions
-    open_positions = kraken_api.get_open_positions()
-    if open_positions:
-        print(f"Open positions: {open_positions}")
-        for position in open_positions:
-            if position["type"] == "sell":
-#                 kraken_api.buy(config.PAIR, position["volume"])
-                print(f"Bought {position['volume']} {config.CURRENCY} to close short position at {current_price:.4f}.")
-            elif position["type"] == "buy":
-#                 kraken_api.sell(config.PAIR, position["volume"])
-                print(f"Sold {position['volume']} {config.CURRENCY} to close long position at {current_price:.4f}.")
-        print("Closed open positions.")
-
-    # Print final account balance
-    account_balance = kraken_api.get_account_balance()
-    print(f"Final account balance: {account_balance}")
 
 
 def run_strategy():
@@ -97,18 +64,23 @@ def run_strategy():
 
     # Calculate Bollinger Bands
     close_data = np.array([data[4] for data in ohlc_data])
-    upper_band, middle_band, lower_band = talib.BBANDS(close_data, timeperiod=config.BBANDS_PERIOD, nbdevup=config.BBANDS_DEV_UP, nbdevdn=config.BBANDS_DEV_DOWN)
+    upper_band, middle_band, lower_band = talib.BBANDS(
+        close_data,
+        timeperiod=config.BBANDS_PERIOD,
+        nbdevup=config.BBANDS_DEV_UP,
+        nbdevdn=config.BBANDS_DEV_DOWN,
+    )
 
     # Calculate Fibonacci levels
     high_data = np.array([data[2] for data in ohlc_data])
     low_data = np.array([data[3] for data in ohlc_data])
-    fib_levels = calculate_fibonacci_levels(high_data, low_data, config.FIB_LEVELS)
-
+    fib_levels = calculate_fib
+    defibonacci_levels(high_data, low_data, config.FIB_LEVELS)
     # Execute trades
     execute_trades(ohlc_data, upper_band, middle_band, lower_band, fib_levels, kraken_api)
-
 
 if __name__ == '__main__':
     while True:
         run_strategy()
-        time.sleep(20)
+        time.sleep(config.WAIT_TIME) # Wait before running strategy again.
+
